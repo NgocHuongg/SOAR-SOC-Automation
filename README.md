@@ -25,10 +25,12 @@ Suricata 7.0.9.
 ```
 SOAR_Project/
 ├─ docs/                 # Toàn bộ tài liệu triển khai (01–07, 10, 11)
-├─ wazuh-docker/         # Stack Wazuh (chạy từ Windows) — single-node/
-│  └─ single-node/config/custom/   # decoder & rule riêng, script integration n8n
-├─ stacks/               # (gom về) config các stack chạy trong WSL
-│  ├─ thehive-cortex/    # chỉ compose + .env.example (DATA ở WSL, xem ghi chú)
+├─ wazuh-docker/         # Bản clone wazuh/wazuh-docker v4.14.8, chạy từ Windows — single-node/
+│  ├─ single-node/config/custom/       # decoder & rule riêng, script integration n8n
+│  └─ single-node/config/wazuh_cluster/ # wazuh_manager.conf.example (bản thật chứa VT API key, không commit)
+├─ stacks/               # config các stack chạy trong WSL
+│  ├─ thehive-cortex/    # compose + .env.example (DATA ở WSL, xem ghi chú)
+│  ├─ Ubuntu_WSL_Build/  # bản clone StrangeBeeCorp/docker — testing/ = compose + script (data/secret không commit)
 │  └─ n8n/               # compose n8n
 ├─ n8n_workflow_backup/  # export workflow SOAR (không chứa secret)
 ├─ keys/                 # ⚠ SSH key pfSense — KHÔNG commit lên GitHub

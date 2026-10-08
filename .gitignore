@@ -2,24 +2,27 @@
 keys/
 *.pem
 *.key
-*.env
-# wazuh_manager.conf chứa VirusTotal API key + cluster key
-wazuh-docker/single-node/config/wazuh_cluster/
+# file thật chứa VirusTotal API key — repo chỉ có bản .example
+wazuh-docker/single-node/config/wazuh_cluster/wazuh_manager.conf
 
-# ===== wazuh-docker: clone upstream wazuh/wazuh-docker v4.14.8 =====
-# chỉ commit phần config tự viết (decoder/rule/script integration)
-wazuh-docker/*
-!wazuh-docker/single-node/
-wazuh-docker/single-node/*
-!wazuh-docker/single-node/config/
-wazuh-docker/single-node/config/*
-!wazuh-docker/single-node/config/custom/
+# file sinh bởi init.sh của StrangeBee (mật khẩu Elasticsearch, secret TheHive/Cortex)
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/.env
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/thehive/config/secret.conf
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/thehive/config/index.conf
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/cortex/config/secret.conf
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/cortex/config/index.conf
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/nginx/certs/*
+!stacks/Ubuntu_WSL_Build/thehive-cortex/testing/nginx/certs/.gitkeep
 
-# ===== Clone bên thứ ba + dữ liệu runtime (cassandra/elasticsearch/.env) =====
-stacks/Ubuntu_WSL_Build/
+# ===== Dữ liệu runtime / log =====
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/cassandra/
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/elasticsearch/
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/thehive/logs/
+stacks/Ubuntu_WSL_Build/thehive-cortex/testing/cortex/logs/
+*.log
 
 # ===== Video: file >100MB (giới hạn GitHub), để ngoài repo =====
 Video/
 
-*.log
+# ===== Backup .git của 2 bản clone upstream (wazuh-docker, StrangeBee) =====
 .wazuh-docker-git-backup/
