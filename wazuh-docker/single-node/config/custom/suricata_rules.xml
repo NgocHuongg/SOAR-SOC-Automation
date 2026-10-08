@@ -1,0 +1,25 @@
+<group name="ids,suricata,">
+  <rule id="100110" level="0">
+    <decoded_as>suricata-bsd</decoded_as>
+    <field name="event_type">\.+</field>
+    <description>Suricata messages (pfSense, BSD syslog).</description>
+  </rule>
+
+  <rule id="100111" level="3">
+    <if_sid>100110</if_sid>
+    <field name="event_type">^alert$</field>
+    <description>Suricata: Alert - $(alert.signature)</description>
+  </rule>
+
+  <rule id="100112" level="12">
+    <if_sid>100111</if_sid>
+    <field name="alert.severity">^1$</field>
+    <description>Suricata: High severity alert - $(alert.signature)</description>
+  </rule>
+
+  <rule id="100113" level="10">
+    <if_sid>100111</if_sid>
+    <field name="alert.severity">^2$</field>
+    <description>Suricata: Medium severity alert - $(alert.signature)</description>
+  </rule>
+</group>

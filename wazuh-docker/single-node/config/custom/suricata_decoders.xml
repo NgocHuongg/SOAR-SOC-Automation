@@ -1,0 +1,5 @@
+<!-- pfSense Suricata EVE via BSD syslog without hostname -->
+<decoder name="suricata-bsd">
+  <prematch type="pcre2">(?:suricata\[\d+\]: |^)(?=\{"timestamp")</prematch>
+  <plugin_decoder offset="after_prematch">JSON_Decoder</plugin_decoder>
+</decoder>

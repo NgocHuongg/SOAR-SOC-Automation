@@ -1,0 +1,531 @@
+{
+  "name": "SOAR - Wazuh alert intake",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wazuh-alert",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        16
+      ],
+      "id": "dfbeef9e-ec27-465d-9b49-9604eff46c96",
+      "name": "Webhook",
+      "webhookId": "36ff2861-aa99-468c-b5be-89c0a18c8f0e"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const a = $json.body;\nconst d = a.data || {};\nconst srcIp = d.src_ip || d.srcip || null;\nconst dstIp = d.dest_ip || d.dstip || null;\nconst level = Number(a.rule.level);\nconst severity = level >= 15 ? 4 : (level >= 12 ? 3 : 2);\nconst mitre = (a.rule.mitre && a.rule.mitre.id) ? a.rule.mitre.id.join(', ') : '-';\nconst signature = (d.alert && d.alert.signature) ? d.alert.signature : '-';\n\nconst description = [\n  `**Wazuh rule:** ${a.rule.id} (level ${level})`,\n  `**Mô tả:** ${a.rule.description}`,\n  `**Agent:** ${a.agent.name} (${a.agent.id})`,\n  `**Thời gian:** ${a.timestamp}`,\n  `**IP nguồn:** ${srcIp || '-'}`,\n  `**IP đích:** ${dstIp || '-'}`,\n  `**Suricata signature:** ${signature}`,\n  `**MITRE ATT&CK:** ${mitre}`,\n].join('\\n\\n');\n\nconst observables = [];\nif (srcIp) observables.push({ dataType: 'ip', data: srcIp, tags: ['src_ip'] });\n\nreturn {\n  json: {\n    src_ip: srcIp,\n    rule_id: a.rule.id,\n    level,\n    thehive_alert: {\n      type: 'wazuh-alert',\n      source: 'Wazuh',\n      sourceRef: String(a.id),\n      title: `[Wazuh ${a.rule.id}] ${a.rule.description}`,\n      description,\n      severity,\n      tags: ['wazuh', `rule:${a.rule.id}`, `agent:${a.agent.name}`],\n      observables,\n    },\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        16
+      ],
+      "id": "be3c3f4d-f88c-4c1b-94ca-5b89c643c377",
+      "name": "Parsing Alert"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:9000/thehive/api/v1/alert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=   {{ JSON.stringify($json.thehive_alert) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -304,
+        16
+      ],
+      "id": "41f59718-7b25-4e89-915b-4584a530756b",
+      "name": "Create Alert TheHive",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "srogFsjoAtzoBLrN",
+          "name": "TheHive - n8n key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Lay du lieu tu node Parsing Alert (IP, level) va ket qua tao alert TheHive ($json)\nconst p = $('Parsing Alert').item.json;\nconst ip = p.src_ip;\n\n// Cac dai IP noi bo / he thong: khong phan tich, khong bao gio tu chan\nconst internal = [\n  /^10\\.10\\.99\\./,                // SOC\n  /^172\\.16\\.10\\./,               // DMZ\n  /^10\\.10\\.20\\./,                // CLIENT\n  /^192\\.168\\.210\\.(1|2|132)$/,   // host, NAT gateway VMware, WAN pfSense\n  /^127\\./,\n];\nconst isInternal = !ip || internal.some(r => r.test(ip));\n\nreturn {\n  json: {\n    src_ip: ip,\n    level: p.level,\n    rule_id: p.rule_id,\n    thehive_alert_id: $json._id,\n    thehive_tags: $json.tags,\n    thehive_description: $json.description,\n    is_internal: isInternal,\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        16
+      ],
+      "id": "7d3f9da5-c3f0-4696-857b-9d31050e5201",
+      "name": "WhiteList Check"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f010d1e5-f389-42ee-a609-1eb1dbae9fc3",
+              "leftValue": "={{ $json.is_internal }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        144,
+        16
+      ],
+      "id": "a634bca9-af8c-4349-bb17-b058c9c4b7fb",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:9001/cortex/api/analyzer/type/ip",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        -240
+      ],
+      "id": "1eda66e1-6239-4b5c-b992-e0bf07366fbc",
+      "name": "Collect analyzer IP",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "G1FFU26forGtg8kO",
+          "name": "Cortex - n8n key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:9001/cortex/api/analyzer/{{ $json.id }}/run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: $('WhiteList Check').item.json.src_ip, dataType: 'ip', tlp: 2, pap: 2, message: 'n8n SOAR - TheHive ' + $('WhiteList Check').item.json.thehive_alert_id }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        512,
+        -240
+      ],
+      "id": "e57041fe-7891-4a03-8304-bebff34e8856",
+      "name": "Run analyzer",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "G1FFU26forGtg8kO",
+          "name": "Cortex - n8n key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:9001/cortex/api/job/{{ $json.id }}/waitreport?atMost=1minute",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        -240
+      ],
+      "id": "3f284f1a-3e72-4f80-bd8a-9f9579d8a418",
+      "name": "Wait for output",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "G1FFU26forGtg8kO",
+          "name": "Cortex - n8n key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst ctx = $('WhiteList Check').first().json;\n\nlet abuse = null, abuseReports = null, abuseCountry = '-', abuseIsp = '-', abuseUsage = '-';\nlet vtMal = null, vtSusp = null, vtTotal = null;\nconst failed = [];\n\nfor (const it of items) {\n  const j = it.json;\n  const name = j.analyzerName || j.workerName || '';\n  const r = j.report || {};\n  if (j.status !== 'Success' || !r.success) { failed.push(name); continue; }\n\n  if (name.startsWith('AbuseIPDB')) {\n    const d = (((r.full || {}).values || [])[0] || {}).data || {};\n    abuse = Number(d.abuseConfidenceScore ?? 0);\n    abuseReports = Number(d.totalReports ?? 0);\n    abuseCountry = d.countryCode || '-';\n    abuseIsp = d.isp || '-';\n    abuseUsage = d.usageType || '-';\n  } else if (name.startsWith('VirusTotal')) {\n    const s = ((r.full || {}).attributes || {}).last_analysis_stats || {};\n    vtMal = Number(s.malicious ?? 0);\n    vtSusp = Number(s.suspicious ?? 0);\n    vtTotal = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);\n  }\n}\n\n// Chinh sach chan da chot\nconst reasons = [];\nif (ctx.level >= 12) reasons.push(`Wazuh level ${ctx.level} >= 12`);\nif (abuse !== null && abuse >= 50) reasons.push(`AbuseIPDB score ${abuse} >= 50`);\nif (vtMal !== null && vtMal > 0) reasons.push(`VirusTotal ${vtMal} engine báo malicious`);\nconst block = reasons.length > 0;\nconst verdict = block ? 'BLOCK' : 'MONITOR';\n\nconst analysis = [\n  '---',\n  '### Kết quả phân tích tự động (Cortex)',\n  `**AbuseIPDB:** score ${abuse ?? 'N/A'}/100, ${abuseReports ?? 'N/A'} báo cáo, quốc gia ${abuseCountry}, ISP ${abuseIsp} (${abuseUsage})`,\n  `**VirusTotal:** ${vtMal ?? 'N/A'} malicious, ${vtSusp ?? 'N/A'} suspicious / ${vtTotal ?? 'N/A'} engine`,\n  failed.length ? `**Analyzer lỗi:** ${failed.join(', ')}` : null,\n  `**Quyết định SOAR:** ${verdict} - ${block ? reasons.join('; ') : 'chưa đủ điều kiện chặn tự động'}`,\n].filter(Boolean).join('\\n\\n');\n\nconst tags = [...new Set([\n  ...(ctx.thehive_tags || []),\n  `abuseipdb:${abuse ?? 'na'}`,\n  `vt-malicious:${vtMal ?? 'na'}`,\n  `soar:${verdict.toLowerCase()}`,\n])];\n\nreturn [{\n  json: {\n    src_ip: ctx.src_ip,\n    level: ctx.level,\n    rule_id: ctx.rule_id,\n    thehive_alert_id: ctx.thehive_alert_id,\n    abuse_score: abuse,\n    abuse_reports: abuseReports,\n    vt_malicious: vtMal,\n    vt_suspicious: vtSusp,\n    block,\n    verdict,\n    reasons,\n    thehive_update: {\n      description: ctx.thehive_description + '\\n\\n' + analysis,\n      tags,\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        -240
+      ],
+      "id": "5f9442e2-e279-4fa2-b14e-2d75a80f2595",
+      "name": "Compilation of decisions"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://host.docker.internal:9000/thehive/api/v1/alert/{{ $json.thehive_alert_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.thehive_update) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        -240
+      ],
+      "id": "3e7deb61-7c8f-4923-949a-b4aba12aaf81",
+      "name": "Alert TheHive",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "srogFsjoAtzoBLrN",
+          "name": "TheHive - n8n key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4c7c60f9-0fe1-4eeb-ba04-5120c430de0b",
+              "leftValue": "={{ $('Compilation of decisions').item.json.block }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "585cda8b-7b3e-49db-bd9f-5c7f33510ef0",
+              "leftValue": "={{ $('Compilation of decisions').item.json.src_ip }}",
+              "rightValue": "^(\\d{1,3}\\.){3}\\d{1,3}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        -240
+      ],
+      "id": "96fb4bc9-a684-45df-8891-83e6110e65a2",
+      "name": "Blocked"
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "=sudo /usr/local/bin/easyrule block wan {{ $('Compilation of decisions').item.json.src_ip }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        -256
+      ],
+      "id": "daf888ca-4deb-459c-b488-dff44b805898",
+      "name": "Block IP pfSense",
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "Wuuip8BSjbb3hkvp",
+          "name": "pfSense - soar-n8n SSH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://host.docker.internal:9000/thehive/api/v1/alert/{{ $('Compilation of decisions').item.json.thehive_alert_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: $('Compilation of decisions').item.json.thehive_update.tags.concat(['soar:blocked']) }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1856,
+        -256
+      ],
+      "id": "5f9b32cc-2e8e-427b-ba47-35fb5c46ea8f",
+      "name": "Tag blocked",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "srogFsjoAtzoBLrN",
+          "name": "TheHive - n8n key"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "host.docker.internal:5678",
+            "user-agent": "python-requests/2.33.1",
+            "accept-encoding": "gzip, deflate",
+            "accept": "*/*",
+            "connection": "keep-alive",
+            "content-length": "1645",
+            "content-type": "application/json"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "timestamp": "2026-10-08T11:27:00.833+0000",
+            "rule": {
+              "level": 12,
+              "description": "Suricata: Medium severity alert - GPL ATTACK_RESPONSE id check returned root",
+              "id": "100113",
+              "firedtimes": 1,
+              "mail": false,
+              "groups": [
+                "ids",
+                "suricata"
+              ]
+            },
+            "agent": {
+              "id": "000",
+              "name": "wazuh.manager"
+            },
+            "manager": {
+              "name": "wazuh.manager"
+            },
+            "id": "1791458820.test0003",
+            "full_log": "Oct  8 18:27:01 suricata[38808]: {\"timestamp\":\"2026-10-08T18:27:01.044866+0700\",\"flow_id\":1189726336047889,\"in_iface\":\"em2\",\"event_type\":\"alert\",\"src_ip\":\"217.160.0.187\",\"src_port\":80,\"dest_ip\":\"10.10.20.100\",\"dest_port\":56738,\"proto\":\"TCP\",\"pkt_src\":\"wire/pcap\",\"tx_id\":0,\"tx_guessed\":true,\"alert\":{\"action\":\"allowed\",\"gid\":1,\"signature_id\":2100498,\"rev\":7,\"signature\":\"GPL ATTACK_RESPONSE id check returned root\",\"category\":\"Potentially Bad Traffic\",\"severity\":2},\"app_proto\":\"http\",\"direction\":\"to_client\"}",
+            "predecoder": {
+              "timestamp": "Oct  8 18:27:01",
+              "hostname": "suricata[38808]:"
+            },
+            "decoder": {
+              "name": "suricata-bsd"
+            },
+            "data": {
+              "timestamp": "2026-10-08T18:27:01.044866+0700",
+              "flow_id": "1189726336047889.000000",
+              "in_iface": "em2",
+              "event_type": "alert",
+              "src_ip": "203.0.113.50",
+              "src_port": "80",
+              "dest_ip": "10.10.20.100",
+              "dest_port": "56738",
+              "proto": "TCP",
+              "pkt_src": "wire/pcap",
+              "tx_id": "0",
+              "tx_guessed": "true",
+              "alert": {
+                "action": "allowed",
+                "gid": "1",
+                "signature_id": "2100498",
+                "rev": "7",
+                "signature": "GPL ATTACK_RESPONSE id check returned root",
+                "category": "Potentially Bad Traffic",
+                "severity": "2"
+              },
+              "app_proto": "http",
+              "direction": "to_client"
+            },
+            "location": "172.22.0.1"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/wazuh-alert",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parsing Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsing Alert": {
+      "main": [
+        [
+          {
+            "node": "Create Alert TheHive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Alert TheHive": {
+      "main": [
+        [
+          {
+            "node": "WhiteList Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhiteList Check": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Collect analyzer IP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect analyzer IP": {
+      "main": [
+        [
+          {
+            "node": "Run analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run analyzer": {
+      "main": [
+        [
+          {
+            "node": "Wait for output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for output": {
+      "main": [
+        [
+          {
+            "node": "Compilation of decisions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compilation of decisions": {
+      "main": [
+        [
+          {
+            "node": "Alert TheHive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert TheHive": {
+      "main": [
+        [
+          {
+            "node": "Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Blocked": {
+      "main": [
+        [
+          {
+            "node": "Block IP pfSense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Block IP pfSense": {
+      "main": [
+        [
+          {
+            "node": "Tag blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e5d5f0b3-194f-4aa0-91e5-38ba63e4e1fe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7729cc42166988284af233f084c57ed9a17ca2c4e3696463d350ef92657f52fe"
+  },
+  "nodeGroups": [],
+  "id": "ZTBhqrCsyrzcTg3v",
+  "tags": []
+}

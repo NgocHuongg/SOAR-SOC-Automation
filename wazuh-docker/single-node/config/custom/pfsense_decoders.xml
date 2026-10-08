@@ -1,0 +1,16 @@
+<!-- pfSense 2.8 BSD syslog has no hostname: predecoder puts "filterlog[pid]:" into hostname -->
+<decoder name="pfsense-bsd">
+  <prematch type="pcre2">,match,(?:block|pass),(?:in|out),4,</prematch>
+</decoder>
+
+<decoder name="pfsense-bsd-fields">
+  <parent>pfsense-bsd</parent>
+  <regex type="pcre2">(\d+),[^,]*,[^,]*,(\d+),([^,]+),match,(block|pass),(in|out),4,[^,]*,[^,]*,\d+,\d+,\d+,[^,]*,\d+,([a-z0-9-]+),\d+,(\d+\.\d+\.\d+\.\d+),(\d+\.\d+\.\d+\.\d+)</regex>
+  <order>rule_number,id,interface,action,direction,protocol,srcip,dstip</order>
+</decoder>
+
+<decoder name="pfsense-bsd-fields">
+  <parent>pfsense-bsd</parent>
+  <regex type="pcre2">,(?:tcp|udp),\d+,\d+\.\d+\.\d+\.\d+,\d+\.\d+\.\d+\.\d+,(\d+),(\d+),</regex>
+  <order>srcport,dstport</order>
+</decoder>
