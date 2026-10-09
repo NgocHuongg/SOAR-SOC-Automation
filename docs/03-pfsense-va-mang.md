@@ -1,11 +1,7 @@
 # SOAR Lab – Phần 3: Mạng VMware + pfSense
 
 ## Chọn phiên bản pfSense
-
-- File có sẵn: `pfSense-CE-2.6.0-RELEASE-amd64.iso` → **không dùng**. Bản này hết hỗ trợ, Netgate đã gỡ kho package nên không cài được Suricata.
-- Dùng: **pfSense CE 2.7.2 amd64** (full ISO, cài offline được). Cài xong **nâng cấp lên bản 2.8.x hiện hành** (System → Update) **trước khi cài Suricata**. Nâng từ 2.7.2 lên 2.8.x là đường nâng cấp chính thức. Bản 2.7.2 cũng đã hết hỗ trợ nên có thể không có package nếu không nâng.
-- Bản CE hiện hành theo Netgate docs: 2.8.1 (09/2025).
-
+- Dùng: **pfSense CE 2.7.2 amd64** (full ISO, cài offline được). Cài xong **nâng cấp lên bản 2.8.x hiện hành** (System → Update) **trước khi cài Suricata**. Nâng từ 2.7.2 lên 2.8.x là đường nâng cấp chính thức. 
 ## Bảng mạng
 
 | VMnet | Kiểu | Subnet | Zone | DHCP VMware | Host adapter |
@@ -54,8 +50,6 @@ Vì sao gán interface "LAN" của pfSense vào em3 (SOC): pfSense chỉ cho và
   - Host (SOC) → ping 172.16.10.10: reply, TTL=63 ✔ (đi qua pfSense 1 hop, route host chạy đúng)
   - Kali (WAN) → `curl -I http://192.168.210.132/dvwa/login.php` → `HTTP/1.1 200 OK` ✔ (port forward chạy đúng)
   - Lưu ý: DVWA mặc định security level `impossible`. Khi tập tấn công phải vào DVWA Security để chỉnh xuống Low/Medium
-
-**→ PHẦN MẠNG + PFSENSE HOÀN TẤT (2026-10-03).**
 
 ---
 

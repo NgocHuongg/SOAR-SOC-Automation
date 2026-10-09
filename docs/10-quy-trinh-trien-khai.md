@@ -1,12 +1,5 @@
 # SOAR Lab – Quy trình triển khai end-to-end
 
-> Tài liệu tổng hợp toàn bộ quá trình dựng lab SOAR, từ hạ tầng đến khi chạy
-> được chuỗi tự động phát hiện – phản ứng, kèm kết quả kiểm thử.
-> Đề tài: *Nghiên cứu ứng dụng tự động hóa trong vận hành an ninh mạng nhằm nâng
-> cao năng lực phát hiện và phản ứng sự cố trong hệ thống SOC.*
-> Chi tiết từng lệnh nằm ở các doc 01–07; đây là mạch xuyên suốt + lý do + bằng chứng.
-> Cập nhật: 2026-10-09
-
 ---
 
 ## 0. Tổng quan & kiến trúc
@@ -267,7 +260,7 @@ trong lab. Ghi kết quả enrich + verdict vào alert TheHive (PATCH, thêm tag
 Ba kịch bản phủ 3 hướng mối đe doạ. Điểm mấu chốt: **SOAR phản ứng theo ngữ
 cảnh**, không chặn mù.
 
-### 7.1 Tấn công web đi vào — SQL Injection (full auto-response) ✔
+### 7.1 Tấn công web đi vào — SQL Injection (full auto-response)
 
 1 request SQLi từ Kali `192.168.210.130` vào **IP WAN** `192.168.210.132` (NAT →
 DVWA). Chuỗi: Suricata *ET WEB_SERVER SELECT USER SQL Injection Attempt in URI*
@@ -283,7 +276,7 @@ trước (rule block đứng trên rule pass) → `easyrule unblock` — đồng
 chứng cơ chế chặn có tác dụng thật. Dùng 1 request SQLi thay vì nikto (570 alert)
 để demo gọn.
 
-### 7.2 Malware trên endpoint — FIM + VirusTotal (detection + active response) ✔
+### 7.2 Malware trên endpoint — FIM + VirusTotal (detection + active response)
 
 Theo dõi `C:\Users\NgocHuong\Downloads` bằng FIM realtime (`alert_new_files` để
 báo cả file mới) + tích hợp **VirusTotal** trên manager (lọc `<group>syscheck`,
@@ -307,7 +300,7 @@ Response `remove-threat` (script PowerShell + wrapper `.cmd` trên agent, khai b
 xoá file độc khi VirusTotal báo. Đây là phản ứng phía endpoint, song song với
 nhánh chặn IP của tấn công web.
 
-### 7.3 Lưu lượng C2 đi ra — malware beaconing (detection, không auto-block) ✔
+### 7.3 Lưu lượng C2 đi ra — malware beaconing (detection, không auto-block)
 
 Dùng một mẫu lưu lượng C2 malware để kiểm thử phát hiện chiều đi ra. Suricata
 bắt *ET MALWARE* → Wazuh **rule 100112 level 12** → TheHive, **nhưng không chặn**.
@@ -326,8 +319,6 @@ của mình. Phản ứng đúng cho C2 là **cô lập máy nhiễm** hoặc ch
 | Endpoint malware (EICAR) | File cục bộ | FIM 554/550 + Sysmon 92213 | VirusTotal 87105 | Tạo case TheHive (+ tùy chọn tự xoá file) |
 | Malware C2 | Máy nội bộ → C2 ngoài | Suricata→Wazuh 100112 | (có thể) | Tạo case TheHive (**không** chặn nguồn nội bộ) |
 
-*Lưu ý an toàn khi thử mẫu độc thật:* cô lập VM, chụp ảnh xong revert về snapshot
-sạch, không đăng nhập tài khoản thật trên VM đó.
 
 ---
 
@@ -349,5 +340,3 @@ DVWA/Win10 → Kali (khi cần). Một số container dùng `unless-stopped` nê
 - `Tag blocked` nên có bước kiểm tra SSH `code = 0` trước khi gắn tag.
 - n8n dùng SQLite nội bộ (đủ cho lab).
 
-**Vị trí file & tài khoản:** bảng đầy đủ (API key, mật khẩu, đường dẫn key SSH)
-ở doc `00-tai-khoan.md` — **chỉ dùng nội bộ, không đưa lên GitHub**.

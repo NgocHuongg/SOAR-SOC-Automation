@@ -31,7 +31,7 @@ pfSense/Suricata/agent ──► Wazuh (alert level ≥ 10)
   - [x] 2a. Org `SOAR-Lab`; user `huong@soar.internal` (read, analyze, orgadmin); user `thehive@soar.internal` (read, analyze) + API key (2026-10-08)
   - [x] 2b. Đăng ký API key AbuseIPDB và VirusTotal (2026-10-08, lưu ở doc 00)
   - [x] 2c. Bật analyzer AbuseIPDB_2_0 và VirusTotal_GetReport_3_1 (đăng nhập huong@soar.internal → Organization → Analyzers → Enable, điền key)
-    - **Lỗi đã gặp (2026-10-08):** job chạy thử đều `Failure`, lỗi chỉ hiện `/tmp/cortex-jobs/cortex-job-...`. Log `docker logs cortex` → `java.nio.file.AccessDeniedException: /tmp/cortex-jobs/cortex-job-...`
+    - **Lỗi:** job chạy thử đều `Failure`, lỗi chỉ hiện `/tmp/cortex-jobs/cortex-job-...`. Log `docker logs cortex` → `java.nio.file.AccessDeniedException: /tmp/cortex-jobs/cortex-job-...`
     - Root cause: `/tmp/cortex-jobs` là bind mount từ `/home/ngochuong/soar-lab/thehive-cortex/testing/cortex/cortex-jobs`. Docker tự tạo thư mục này với chủ **root:root** (755), còn tiến trình Java của Cortex chạy bằng UID **1001** (entrypoint khởi động bằng root rồi hạ quyền), nên không tạo được thư mục job. `docker exec cortex id` trả 0:0 là sai lệch: `docker exec` mặc định chạy bằng root, không phản ánh user của tiến trình Java
     - Cách xử lý (Ubuntu WSL):
       ```bash
@@ -40,7 +40,7 @@ pfSense/Suricata/agent ──► Wazuh (alert level ≥ 10)
       docker run --rm -v "$SRC":/x alpine chown -R "$JUID" /x
       docker exec cortex ls -ldn /tmp/cortex-jobs   # → 1001 1001
       ```
-    - Sau khi sửa: New Analysis ip `217.160.0.187` với 2 analyzer → cả 2 job **Success** (2026-10-08 19:43) ✔
+    - Sau khi sửa: New Analysis ip `217.160.0.187` với 2 analyzer → cả 2 job **Success**
 - [x] 3. Nối TheHive ↔ Cortex (2026-10-08): đăng nhập admin@thehive.local → Platform Management → Connectors → Cortex → nút **+** cạnh Servers. Server `Cortex-Local`, URL `http://cortex:9001/cortex` (tên container, vì TheHive gọi Cortex trong mạng Docker), API key của `thehive@soar.internal`
 - [x] 4. Nâng level alert Suricata theo severity (2026-10-08). Thêm vào `config\custom\suricata_rules.xml` rồi `docker cp` + chown/chmod + restart:
   - `100112` level 12: `<if_sid>100111</if_sid>` + `<field name="alert.severity">^1$</field>`

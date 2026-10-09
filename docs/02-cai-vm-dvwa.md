@@ -8,19 +8,13 @@
 | IP | 172.16.10.10/24 tĩnh, gateway 172.16.10.1 (pfSense) | DHCP của VMware NAT |
 | Hostname | `dvwa-web` | |
 
-Lý do cài bằng NAT trước: lúc này chưa có pfSense nên VMnet2 chưa ra được Internet. Cài xong và test được thì mới chuyển sang VMnet2 + IP tĩnh. Việc này làm sau khi cài pfSense (mục H).
+Lý do cài bằng NAT trước: lúc này chưa có pfSense nên VMnet2 chưa ra được Internet. Cài xong và test được thì mới chuyển sang VMnet2 + IP tĩnh. Việc này làm sau khi cài pfSense.
 
 ## Phiên bản
 
 - Ubuntu Server **24.04 LTS** (bản point release mới nhất). Chọn 24.04 thay vì 26.04 vì Wazuh agent và DVWA hỗ trợ ổn định lâu hơn.
 - DVWA: bản mới nhất trên GitHub `digininja/DVWA`
 - PHP 8.3, Apache 2.4, MariaDB (theo repo Ubuntu 24.04)
-
-## Thay đổi so với kế hoạch
-
-Dùng VM **Ubuntu 24.04.4** có sẵn, đã boot và `update`/`upgrade` xong, nên bỏ qua bước A–C.
-- Nếu là bản Desktop thì đổi IP tĩnh ở mục H bằng NetworkManager (`nmcli` hoặc giao diện), không sửa file netplan, và nên để RAM ≥ 3–4GB.
-- Phải cài thêm `openssh-server` (xem mục D'). **Giữ nguyên hostname `ngochuong`**. Khi cài Wazuh agent sẽ đặt tên agent là `dvwa-web` bằng biến `WAZUH_AGENT_NAME`, để trên dashboard dễ phân biệt.
 
 ## Thông số thực tế
 
@@ -33,31 +27,16 @@ Dùng VM **Ubuntu 24.04.4** có sẵn, đã boot và `update`/`upgrade` xong, n�
 - [x] D'. Cài openssh-server, đặt timezone, update/upgrade
 - [x] E. Cài Apache + MariaDB + PHP 8.3.6 + DVWA
 - [x] F. Setup DVWA: Create DB xong, đăng nhập admin được tại http://192.168.210.131/dvwa (2026-10-02). Setup check còn đỏ: reCAPTCHA, mod_rewrite, vendor API, display_startup_errors. Không ảnh hưởng lab chính, chỉ cần khi làm bài API
-- [ ] G. Chụp snapshot `DVWA-clean`
+- [x] G. Chụp snapshot `DVWA-clean`
 - [x] H. Chuyển card sang VMnet2, đặt IP tĩnh 172.16.10.10/24, gateway và DNS là 172.16.10.1, bằng `nmcli con mod "netplan-ens33" ...` (2026-10-03). URL mới: http://172.16.10.10/dvwa. Từ Internet (Kali): http://<IP WAN pfSense>/dvwa
 
 ---
 
 ### A. Tải ISO
 
-Vào https://releases.ubuntu.com/24.04/ và tải file `ubuntu-24.04.x-live-server-amd64.iso`.
+Vào https://releases.ubuntu.com/24.04/ và tải file iso
 
-### B. Tạo VM trong VMware Workstation
-
-1. File → New Virtual Machine → **Typical**.
-2. Chọn **I will install the operating system later**. Không chọn ISO ở bước này để VMware không tự chạy Easy Install.
-3. Guest OS: **Linux** → **Ubuntu 64-bit**.
-4. Tên VM: `DVWA-Web`. Location đặt trên ổ F: (ví dụ `F:\VMs\DVWA-Web`).
-5. Disk: **20GB**, chọn Store virtual disk as a single file.
-6. **Customize Hardware:**
-   - Memory: **2048MB**
-   - Processors: **2**
-   - New CD/DVD → **Use ISO image file** → chọn ISO vừa tải
-   - Network Adapter: **NAT**
-   - Bỏ Sound Card và Printer (server không cần)
-7. Finish rồi bật VM.
-
-### C. Cài Ubuntu Server
+### B. Cài Ubuntu Server
 
 | Màn hình | Chọn |
 |---|---|
@@ -71,8 +50,6 @@ Vào https://releases.ubuntu.com/24.04/ và tải file `ubuntu-24.04.x-live-serv
 | Ubuntu Pro | Skip for now |
 | SSH | Tick **Install OpenSSH server** |
 | Featured snaps | Không chọn gì |
-
-Cài xong thì bấm **Reboot Now**. Nếu VM báo "remove installation medium" thì nhấn Enter.
 
 Đăng nhập rồi xem IP:
 ```bash

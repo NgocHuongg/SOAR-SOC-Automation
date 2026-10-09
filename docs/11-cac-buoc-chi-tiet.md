@@ -1,8 +1,5 @@
-# SOAR Lab – Các bước thực hiện chi tiết (step-by-step)
+# SOAR Lab
 
-> Toàn bộ thao tác đã làm để dựng lab, theo đúng thứ tự, đủ chi tiết để làm lại.
-> Doc này là phần "làm thế nào"; phần "vì sao / root cause" xem doc 10 và 01–07.
-> Cập nhật: 2026-10-09
 
 **Quy ước nơi chạy lệnh:**
 - `[HOST-PS]` = PowerShell trên Windows host (một số lệnh cần **Run as Administrator**).

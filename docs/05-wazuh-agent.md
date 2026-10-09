@@ -10,7 +10,7 @@
 - [x] A4. Agent `win10-client` Active, đọc được Application/Security/System + Sysmon
 - [x] B1. DVWA: cài Wazuh agent `dvwa-web` 4.14.8-1 (đã hold), active, `Connected to the server ([10.10.99.1]:1514/tcp)` (2026-10-03 13:58)
 - [x] B2. DVWA: thu log Apache access/error. Bộ cài Wazuh **tự thêm sẵn** 2 localfile apache2 vào ossec.conf (dòng 198, 203), nên `grep` tìm thấy và lệnh `cat >>` không chạy, không bị trùng. Logcollector báo `Analyzing file: '/var/log/apache2/access.log'` + `error.log` (2026-10-03 14:07)
-- [ ] B3. Kiểm tra agent Active + có log web
+- [x] B3. Kiểm tra agent Active + có log web
 - [x] C. Snapshot các VM (`DVWA-agent`, `Win10-agent`), 2026-10-03
 
 ---

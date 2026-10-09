@@ -1,6 +1,6 @@
 # SOAR Lab – Bước 1: Cài stack Docker trên host Windows
 
-## Kiến trúc đã chốt
+## Kiến trúc
 
 | # | Thành phần | Nằm ở | Mạng | IP |
 |---|---|---|---|---|
@@ -10,7 +10,7 @@
 | 4 | pfSense + Suricata | VMware, 4 NIC | WAN VMnet8 / DMZ VMnet2 / LAN VMnet3 / SOC VMnet4 | .1 / .1 / .254 |
 | 5 | Kali (attacker) | VMware | WAN: VMnet8 (NAT) | DHCP VMware |
 
-## Phiên bản dùng (kiểm tra ngày 2026-10-02)
+## Phiên bản dùng
 
 | Thành phần | Version |
 |---|---|
@@ -20,7 +20,7 @@
 | Cassandra / Elasticsearch (cho TheHive + Cortex) | 4.1.12 / 8.19.22 |
 | n8n | latest |
 
-## Port trên host
+## Port
 
 | Port | Dịch vụ |
 |---|---|
@@ -33,8 +33,6 @@
 | 9001 | Cortex |
 | 5678 | n8n |
 
-Không bật container nginx của bộ TheHive/Cortex vì nó chiếm port 443, trùng với Wazuh Dashboard.
-
 ## Checklist
 
 - [x] 0. Cài Docker Desktop (WSL2 backend). Đã cài thêm distro **Ubuntu-24.04** (user Linux: `ngochuong`) riêng cho stack TheHive/Cortex/n8n. Kali WSL (`kali-linux`) giữ riêng cho tấn công
@@ -46,8 +44,6 @@ Không bật container nginx của bộ TheHive/Cortex vì nó chiếm port 443,
   - Gặp `TLS handshake timeout` khi pull Elasticsearch: lỗi mạng tạm thời. Chạy `docker compose pull ...` lại là được
 - [x] 3. Cài n8n: chạy ngày 2026-10-02, trong Ubuntu ở `~/soar-lab/n8n`. Lần đầu pull gặp `502 Bad Gateway` từ Docker Hub, chạy `docker compose pull` lại là được
 - [x] 4. Kiểm tra toàn bộ: đủ 8 container Up, đăng nhập được cả 4 UI (Wazuh, TheHive, Cortex, n8n). Port 443/1514/1515/5678/9000/9001/55000 đều listen trên `0.0.0.0` (process Docker Desktop). Các dòng `127.0.0.1` / `[::1]` của PID khác là `wslrelay` của WSL, vô hại
-
-**→ PHẦN DOCKER TRÊN HOST HOÀN TẤT (2026-10-02). Phần tiếp theo: VMnet + pfSense.**
 
 ---
 
@@ -89,24 +85,7 @@ sudo apt update && sudo apt install -y git openssl
 mkdir -p ~/soar-lab
 ```
 
-Vì sao làm trong Ubuntu (WSL) chứ không làm ở `C:\`:
-- Script của TheHive/Cortex viết bằng bash.
-- Cassandra và Elasticsearch ghi dữ liệu nhanh hơn, không lỗi phân quyền trên ext4. Chạy trên NTFS thì chậm và hay lỗi permission.
-- Không bị lỗi xuống dòng CRLF khi git clone.
-
-Container vẫn chạy trên Docker Desktop của host, port vẫn mở trên mọi card mạng của Windows.
-
-Lưu ý: bật WSL2/Hyper-V thì VMware Workstation chạy trên nền Hyper-V. Bản 16 trở lên hỗ trợ, VM chậm hơn chút nhưng vẫn ổn.
-
 ### Bước 1: Wazuh single-node
-
-> Thực tế đã chạy ở `F:\SOAR_Project\wazuh-docker\single-node` bằng CMD. Wazuh chạy được từ Windows vì config chỉ là XML/YAML và dữ liệu nằm trong Docker volume. Các lệnh `docker compose ...` cho Wazuh chạy trong thư mục này.
->
-> Gặp khi cài:
-> - `warning: refs/tags/v4.14.8 ... is not a commit!`: vô hại, tag trỏ đúng commit `5f5951b`.
-> - `find: command not found` khi chạy generator: image tạo chứng chỉ (Amazon Linux) thiếu `find`. Chứng chỉ vẫn tạo đủ 12 file.
-> - Gõ `docker compose up -d` lúc generator đang chạy thì lệnh bị container nuốt mất. Phải chờ generator xong mới gõ.
-
 ```bash
 cd ~/soar-lab
 git clone https://github.com/wazuh/wazuh-docker.git -b v4.14.8
@@ -176,18 +155,6 @@ Kiểm tra trên PowerShell của Windows rằng các port đã mở trên host:
 ```powershell
 netstat -ano | findstr "LISTENING" | findstr ":443 :1514 :1515 :9000 :9001 :5678 :55000"
 ```
-
-## Thông tin đăng nhập mặc định (lab)
-
-> Bảng đầy đủ, kể cả tài khoản nội bộ và API key, nằm trong doc `soar-lab/00-tai-khoan.md`.
-
-| Dịch vụ | URL | User / Pass |
-|---|---|---|
-| Wazuh Dashboard | https://localhost | admin / SecretPassword |
-| Wazuh API | https://localhost:55000 | wazuh-wui / <xem 00-tai-khoan.md> |
-| TheHive | http://localhost:9000/thehive | admin@thehive.local / secret (đổi ngay) |
-| Cortex | http://localhost:9001/cortex | tự tạo ở lần đầu |
-| n8n | http://localhost:5678 | tự tạo ở lần đầu |
 
 ## Lệnh vận hành hay dùng
 

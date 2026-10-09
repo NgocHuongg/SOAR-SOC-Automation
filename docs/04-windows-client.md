@@ -13,16 +13,7 @@
 
 ## Chọn bản Windows
 
-- **Windows 11 Enterprise Evaluation**: miễn phí 90 ngày, không cần key. Tải ở Microsoft Evaluation Center (https://www.microsoft.com/evalcenter → Windows 11 Enterprise → ISO, 64-bit, English).
-- Không dùng Windows 10: đã hết hỗ trợ từ 10/2025.
-- Windows 11 bắt buộc có **TPM 2.0 + Secure Boot (UEFI)**. VMware Workstation 17 có vTPM, bật bằng cách mã hoá các file TPM của VM.
-
-## Thực tế đã dùng (2026-10-03)
-
-- ISO **Windows 10 22H2** có sẵn (`F:\Iso\Win10_22H2...`), không dùng Win11 Eval. Win10 đã hết hỗ trợ (EOL 10/2025) nhưng vẫn dùng được cho lab, giống một máy nhân viên chưa cập nhật. Sysmon và Wazuh agent đều hỗ trợ Win10.
-- Không cần TPM/Secure Boot, bỏ qua bước Encryption.
-- Chọn edition **Pro** khi cài, chọn "I don't have a product key". Không kích hoạt bản quyền vẫn dùng bình thường cho lab.
-- RAM nên nâng từ 2GB lên **4GB** (Defender + Sysmon + Wazuh agent chạy 2GB rất chậm).
+- ISO **Windows 10 22H2**
 
 ## Checklist
 
@@ -30,8 +21,8 @@
 - [x] 5. VMware Tools: đã có sẵn từ lúc cài (Easy Install)
 - [x] 6. Bỏ qua: giờ đã khớp máy thật (Windows tự sync qua Internet), **giữ nguyên hostname**. Khi cài Wazuh agent sẽ đặt tên agent `win10-client` để dễ phân biệt trên dashboard
 - [x] 7. Kiểm tra mạng (2026-10-03): 10.10.99.1:1514 → True ✔; 10.10.99.254:443 → False ✔ (bị chặn); ping 10.10.99.1 → timed out ✔ (bị chặn)
-- [ ] 8. Snapshot `Win11-clean`
-- [ ] 9. (Phần 6b) Cài Sysmon + Wazuh agent
+- [x] 8. Snapshot `Win11-clean`
+- [x] 9. Cài Sysmon + Wazuh agent
 
 ---
 
